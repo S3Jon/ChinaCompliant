@@ -22,3 +22,5 @@ drush cr
 drush cc
 drush cache:rebuild
 ```
+
+Existen redundancias en el código, pero aseguran una renderización correcta.
