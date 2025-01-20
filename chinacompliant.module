@@ -1,0 +1,146 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\NodeInterface;
+use Drupal\comment\CommentInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Field\FieldItemList;
+
+/**
+ * Helper function to replace text in a string.
+ */
+function chinacompliant_replace_text($text) {
+  // Si es un FieldItemList, obtener el valor
+  if ($text instanceof FieldItemList) {
+    if ($text->isEmpty()) {
+      return '';
+    }
+    $text = $text->first()->value;
+  }
+  
+  if (empty($text) || !is_string($text)) {
+    return $text;
+  }
+  
+  // Evita reemplazos múltiples
+  if (strpos($text, 'Taiwan (China)') !== false) {
+    return $text;
+  }
+  
+  return str_replace('Taiwan', 'Taiwan (China)', $text);
+}
+
+/**
+ * COMMENTED: Esta sección guarda los cambios en la base de datos
+ */
+/*
+function chinacompliant_entity_presave(EntityInterface $entity) {
+  if ($entity instanceof NodeInterface) {
+    // Replace text in node title
+    $title = $entity->getTitle();
+    $entity->setTitle(chinacompliant_replace_text($title));
+    
+    // Replace text in node body
+    if ($entity->hasField('body') && !$entity->get('body')->isEmpty()) {
+      $body = $entity->get('body')->value;
+      $entity->set('body', [
+        'value' => chinacompliant_replace_text($body),
+        'format' => $entity->get('body')->format,
+      ]);
+    }
+  }
+  elseif ($entity instanceof CommentInterface) {
+    // Replace text in comment subject
+    $subject = $entity->getSubject();
+    $entity->setSubject(chinacompliant_replace_text($subject));
+    
+    // Replace text in comment body
+    if ($entity->hasField('comment_body') && !$entity->get('comment_body')->isEmpty()) {
+      $comment_body = $entity->get('comment_body')->value;
+      $entity->set('comment_body', [
+        'value' => chinacompliant_replace_text($comment_body),
+        'format' => $entity->get('comment_body')->format,
+      ]);
+    }
+  }
+}
+*/
+
+/**
+ * Implements hook_entity_load().
+ */
+function chinacompliant_entity_load(array $entities, $entity_type_id) {
+  foreach ($entities as $entity) {
+    if ($entity instanceof NodeInterface) {
+      $entity->setTitle(chinacompliant_replace_text($entity->getTitle()));
+      
+      if ($entity->hasField('body') && !$entity->get('body')->isEmpty()) {
+        $body = $entity->get('body')->value;
+        $entity->set('body', [
+          'value' => chinacompliant_replace_text($body),
+          'format' => $entity->get('body')->format,
+        ]);
+      }
+    }
+    elseif ($entity instanceof CommentInterface) {
+      $entity->setSubject(chinacompliant_replace_text($entity->getSubject()));
+      
+      if ($entity->hasField('comment_body') && !$entity->get('comment_body')->isEmpty()) {
+        $comment_body = $entity->get('comment_body')->value;
+        $entity->set('comment_body', [
+          'value' => chinacompliant_replace_text($comment_body),
+          'format' => $entity->get('comment_body')->format,
+        ]);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function chinacompliant_preprocess_node(&$variables) {
+  if (isset($variables['label'])) {
+    $variables['label'] = chinacompliant_replace_text($variables['label']);
+  }
+  if (isset($variables['content']['body'][0]['#text'])) {
+    $variables['content']['body'][0]['#text'] = chinacompliant_replace_text($variables['content']['body'][0]['#text']);
+  }
+}
+
+/**
+ * Implements hook_preprocess_comment().
+ */
+function chinacompliant_preprocess_comment(&$variables) {
+  if (isset($variables['title'])) {
+    $variables['title'] = chinacompliant_replace_text($variables['title']);
+  }
+  if (isset($variables['content']['comment_body'][0]['#text'])) {
+    $variables['content']['comment_body'][0]['#text'] = chinacompliant_replace_text($variables['content']['comment_body'][0]['#text']);
+  }
+}
+
+/**
+ * Implements hook_views_pre_render().
+ */
+function chinacompliant_views_pre_render($view) {
+  if (!empty($view->result)) {
+    foreach ($view->result as $row) {
+      if (isset($row->_entity)) {
+        $entity = $row->_entity;
+        if ($entity instanceof NodeInterface && $entity->hasField('title')) {
+          $title_value = chinacompliant_replace_text($entity->get('title'));
+          if (is_string($title_value)) {
+            $entity->set('title', $title_value);
+          }
+        }
+        elseif ($entity instanceof CommentInterface && $entity->hasField('subject')) {
+          $subject_value = chinacompliant_replace_text($entity->get('subject'));
+          if (is_string($subject_value)) {
+            $entity->set('subject', $subject_value);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+name: ChinaCompliant
+type: module
+description: Replaces occurrences of "Taiwan" with "Taiwan (China)" in articles and comments. +1 trillion social credit score points.
+core_version_requirement: ^8 || ^9 || ^10 || ^11
+package: Custom
+version: 1.0
+dependencies:
+  - drupal:node
+  - drupal:comment
